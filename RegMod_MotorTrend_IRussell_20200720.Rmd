@@ -1,0 +1,101 @@
+---
+title: "Motor Trend Fuel Economy by Transmission Analysis."
+author: "Iain Russell"
+date: "20/07/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Executive Summary
+
+The key questions for this project are, firstly whether automatic or manual transmissions are better for fuel economy (mpg), and secondly the quantification of mpg difference between automatic and manual transmissions. 
+
+The null hypothesis is that there is no significant difference in mpg between automatic and manual transmissions. Evidence will be presented to either accept or reject this initial hypothesis.
+
+It is reasonable to assume that mpg depends on other variable such as engine displacement and vehicle weight, in addition to the type of transmission in the vehicle. Therefore 3 regression models are used, each with mpg as the outcome; firstly transmission type alone, secondly including engine displacement, and thirdly including vehicle weight. 
+
+Considering the general situation of transmission type and nothing else, the mpg difference between Automatics and Manuals is significant at the 95% confidence level (p < 0.05). The situation is complicated however by consideration of other factors such as engine displacement and vehicle weight, and when these variables are held constant (controlled for), the difference in mpg between Automatics and Manuals is no longer significant (p > 0.05).
+
+With mpg as outcome and transmission category as predictor the residual distribution is approximately normal (Shapiro-Wilks test, p = 0.8573), and the residual plot indicates no particular pattern which might invalidate regression assumptions.
+
+When considering transmission type alone, the median mpg is 17.1 for Automatics and 24.4 for Manuals, which can be seen in the boxplot in the appendix. The 95% confidence interval for these 2 estimates overlap however, because mpg fuel efficiency is influenced by other variables beside transmission type.
+
+## Dependencies
+
+Libraries; dplyr for dataframe manipulation, broom for neat regression results display, ggplot2 for data plots.
+
+```{r, echo=FALSE}
+library(dplyr); library(broom); library(ggplot2)
+```
+
+The 'mtcars' dataset. Set new factor variable 'trans' with 'Automatic'/'Manual' names for plotting.
+
+```{r}
+d <- mtcars
+d$trans <- factor(d$am, labels=c("Automatic","Manual"))
+```
+
+## Exploratory Analysis
+
+Structure of the dataset, with new variable 'trans' included.
+```{r}
+str(d)
+```
+
+A boxplot of mpg versus transmission type (see appendix) shows that the median mpg value for cars with manual transmissions is higher than that for cars with automatic transmissions.
+
+## Regression Models
+
+There are 3 models using 3 sets of regressors; transmission type alone, transmission type with engine displacement, and finally transmission type with weight. 
+
+The first model is a linear regression of mpg on transmission type (Automatic or Manual). The intercept is the mean mpg for cars with automatic transmissions, the smaller confidence interval indicating more confidence in the mean mpg for automatic compared to manual transmissions. The second estimate (transManual) is the comparison of manual to automatic transmission mpg, the p-value < 0.05 shows that the mpg difference is significant at the 95% level.
+
+```{r}
+fit1 <- lm(mpg ~ trans, d)
+tidy(fit1)
+confint(fit1)
+d %>% filter(trans == 'Automatic') %>% summarise(mean(mpg))
+d %>% filter(trans == 'Manual') %>% summarise(mean(mpg))
+```
+
+The second model considers transmission type and engine displacement which is related to vehicle power performance. When including engine displacement, the difference in mpg between Automatics and Manuals is reduced and not statistically significant (transManual, p > 0.05).
+
+```{r}
+fit2 <- lm(mpg ~ trans + disp, d)
+tidy(fit2)
+
+```
+
+The third model considers transmission type and vehicle weight. When including vehicle weight, the difference in mpg between Automatics and Manuals is reduced and not statistically significant (transManual, p > 0.05).
+
+```{r}
+fit3 <- lm(mpg ~ trans + wt, d)
+tidy(fit3)
+
+```
+
+## Appendix
+
+```{r, echo=FALSE}
+ggplot(d, aes(x = trans, y = mpg)) + 
+  geom_boxplot(aes(group=trans, fill=trans)) +
+  labs(title = "Fuel Economy by Transmission type Boxplot", x="Transmission Type")
+```
+
+```{r, echo=FALSE}
+fit1.df <- data.frame(resid = residuals(fit1), fitted = fitted.values(fit1))
+ggplot(fit1.df, aes(x=resid)) + stat_density(geom="line") + 
+  labs(title = "Residual distribution", x="Residuals")
+
+```
+
+```{r, echo=FALSE}
+ggplot(fit1.df, aes(x=fitted, y=resid)) + geom_point(colour="firebrick3") +
+  geom_line(aes(x=fitted, y=0), lwd=1) +
+  labs(title="Residual plot", x="Fitted", y="Residuals")
+
+```
+
